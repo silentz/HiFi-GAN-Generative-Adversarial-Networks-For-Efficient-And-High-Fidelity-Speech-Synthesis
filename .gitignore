@@ -1,0 +1,18 @@
+# project specific
+
+venv/
+data/*
+!data/**/.gitkeep
+lightning_logs/
+checkpoints/*
+!checkpoints/.gitkeep
+
+# system specific
+
+.DS_Store
+
+# python garbage
+
+*.pyc
+.ipynb_checkpoints/
+__pycache__/
