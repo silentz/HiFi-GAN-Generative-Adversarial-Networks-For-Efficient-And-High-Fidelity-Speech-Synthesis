@@ -153,29 +153,29 @@ class PeriodDiscriminator(nn.Module):
                         nn.LeakyReLU(negative_slope=negative_slope),
                     ),
                 nn.Sequential(
-                        nn.Conv2d(in_channels=32, out_channels=128,
+                        nn.Conv2d(in_channels=32, out_channels=64,
                                   kernel_size=(kernel_size, 1), stride=(stride, 1), padding=2),
                         nn.LeakyReLU(negative_slope=negative_slope),
                     ),
                 nn.Sequential(
-                        nn.Conv2d(in_channels=128, out_channels=512,
+                        nn.Conv2d(in_channels=64, out_channels=128,
                                   kernel_size=(kernel_size, 1), stride=(stride, 1), padding=2),
                         nn.LeakyReLU(negative_slope=negative_slope),
                     ),
                 nn.Sequential(
-                        nn.Conv2d(in_channels=512, out_channels=1024,
+                        nn.Conv2d(in_channels=128, out_channels=256,
                                   kernel_size=(kernel_size, 1), stride=(stride, 1), padding=2),
                         nn.LeakyReLU(negative_slope=negative_slope),
                     ),
                 nn.Sequential(
-                        nn.Conv2d(in_channels=1024, out_channels=1024,
+                        nn.Conv2d(in_channels=256, out_channels=512,
                                   kernel_size=(kernel_size, 1), stride=(stride, 1), padding=2),
                         nn.LeakyReLU(negative_slope=negative_slope),
                     ),
             ])
 
         self._postnet = nn.Sequential(
-                nn.Conv2d(in_channels=1024, out_channels=1,
+                nn.Conv2d(in_channels=512, out_channels=1,
                           kernel_size=(3, 1), stride=1, padding=1),
             )
 
@@ -212,37 +212,37 @@ class ScaleDiscriminator(nn.Module):
 
         self._layers = nn.ModuleList([
                 nn.Sequential(
-                        nn.Conv1d(in_channels=1, out_channels=128, kernel_size=15, stride=1, padding=7),
+                        nn.Conv1d(in_channels=1, out_channels=32, kernel_size=15, stride=1, padding=7),
                         nn.LeakyReLU(negative_slope=negative_slope),
                     ),
                 nn.Sequential(
-                        nn.Conv1d(in_channels=128, out_channels=128, kernel_size=41, stride=2, padding=20, groups=4),
+                        nn.Conv1d(in_channels=32, out_channels=64, kernel_size=41, stride=2, padding=20, groups=4),
                         nn.LeakyReLU(negative_slope=negative_slope),
                     ),
                 nn.Sequential(
-                        nn.Conv1d(in_channels=128, out_channels=256, kernel_size=41, stride=2, padding=20, groups=16),
+                        nn.Conv1d(in_channels=64, out_channels=128, kernel_size=41, stride=2, padding=20, groups=8),
                         nn.LeakyReLU(negative_slope=negative_slope),
                     ),
                 nn.Sequential(
-                        nn.Conv1d(in_channels=256, out_channels=512, kernel_size=41, stride=4, padding=20, groups=16),
+                        nn.Conv1d(in_channels=128, out_channels=256, kernel_size=41, stride=4, padding=20, groups=8),
                         nn.LeakyReLU(negative_slope=negative_slope),
                     ),
                 nn.Sequential(
-                        nn.Conv1d(in_channels=512, out_channels=1024, kernel_size=41, stride=4, padding=20, groups=16),
+                        nn.Conv1d(in_channels=256, out_channels=512, kernel_size=41, stride=4, padding=20, groups=8),
                         nn.LeakyReLU(negative_slope=negative_slope),
                     ),
                 nn.Sequential(
-                        nn.Conv1d(in_channels=1024, out_channels=1024, kernel_size=41, stride=1, padding=20, groups=16),
+                        nn.Conv1d(in_channels=512, out_channels=512, kernel_size=41, stride=1, padding=20, groups=8),
                         nn.LeakyReLU(negative_slope=negative_slope),
                     ),
                 nn.Sequential(
-                        nn.Conv1d(in_channels=1024, out_channels=1024, kernel_size=5, stride=1, padding=2),
+                        nn.Conv1d(in_channels=512, out_channels=512, kernel_size=5, stride=1, padding=2),
                         nn.LeakyReLU(negative_slope=negative_slope),
                     ),
             ])
 
         self._postnet = nn.Sequential(
-                nn.Conv1d(in_channels=1024, out_channels=1, kernel_size=3, stride=1, padding=1),
+                nn.Conv1d(in_channels=512, out_channels=1, kernel_size=3, stride=1, padding=1),
             )
 
     def forward(self, input: torch.Tensor) -> Tuple[torch.Tensor, List[torch.Tensor]]:

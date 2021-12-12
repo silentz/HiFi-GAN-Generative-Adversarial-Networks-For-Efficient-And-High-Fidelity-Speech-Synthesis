@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 
@@ -43,11 +44,15 @@ class DataModule(pl.LightningDataModule):
 
 class Module(pl.LightningModule):
 
-    def __init__(self, opt_learning_rate: float,
+    def __init__(self, lambda_recon: float,
+                       lambda_feature: float,
+                       opt_learning_rate: float,
                        opt_beta_1: float,
                        opt_beta_2: float,
                        lr_sched_gamma: float):
         super().__init__()
+        self._lambda_recon = lambda_recon
+        self._lambda_feature = lambda_feature
 
         self._opt_parameters = {
                 'lr': opt_learning_rate,
@@ -63,16 +68,59 @@ class Module(pl.LightningModule):
         self.discriminator = Discriminator()
 
     def configure_optimizers(self) -> Tuple[List, List]:
-        gen_optim = torch.optim.AdamW(self.generator.parameters(), **self._opt_parameters)
-        gen_sched = torch.optim.lr_scheduler.ExponentialLR(gen_optim, **self._lr_sched_parameters)
-
         dis_optim = torch.optim.AdamW(self.generator.parameters(), **self._opt_parameters)
         dis_sched = torch.optim.lr_scheduler.ExponentialLR(dis_optim, **self._lr_sched_parameters)
 
-        return [gen_optim, dis_optim], [gen_sched, dis_sched]
+        gen_optim = torch.optim.AdamW(self.generator.parameters(), **self._opt_parameters)
+        gen_sched = torch.optim.lr_scheduler.ExponentialLR(gen_optim, **self._lr_sched_parameters)
+
+        return [dis_optim, gen_optim], [dis_sched, gen_sched]
 
     def training_step(self, batch: Batch, batch_idx: int, optimizer_idx: int) -> Dict[str, Any]:
-        pass
+        real_wavs = batch.waveform
+        real_mels = self.featurizer(real_wavs)
+        real_wavs = torch.unsqueeze(real_wavs, dim=1)
+
+        fake_wavs = self.generator(real_mels)[:, :, :-99]
+        fake_mels = self.featurizer(fake_wavs.squeeze(dim=1))
+
+        if optimizer_idx == 0: # discriminator
+            real_disc_out, _ = self.discriminator(real_wavs.detach())
+            fake_disc_out, _ = self.discriminator(fake_wavs.detach())
+
+            real_loss = sum(torch.mean((x - 1) ** 2) for x in real_disc_out)
+            fake_loss = sum(torch.mean(x ** 2) for x in fake_disc_out)
+            disc_loss = real_loss + fake_loss
+
+            return {
+                    'loss': disc_loss,
+                }
+
+        elif optimizer_idx == 1: # generator
+            _,             real_disc_maps = self.discriminator(real_wavs)
+            fake_disc_out, fake_dics_maps = self.discriminator(fake_wavs)
+
+            recon_loss = F.l1_loss(fake_mels, real_mels)
+            fake_loss = 0
+            feature_loss = 0
+
+            for disc_out in fake_disc_out:
+                fake_loss += torch.mean((disc_out - 1) ** 2)
+
+            for real_maps, fake_maps in zip(real_disc_maps, fake_dics_maps):
+                for real_map, fake_map in zip(real_maps, fake_maps):
+                    feature_loss += torch.mean(torch.abs(real_map - fake_map))
+
+            gen_loss = fake_loss + self._lambda_recon * recon_loss \
+                                 + self._lambda_feature * feature_loss
+
+            return {
+                    'loss': gen_loss,
+                }
+
+        else: # undefined
+            raise ValueError('undefined optimizer')
+
 
     def validation_step(self, batch: Batch, batch_idx: int) -> Dict[str, Any]:
         pass

@@ -25,6 +25,8 @@ trainer:
   #       logging_interval: epoch
 
 model:
+  lambda_recon: 45
+  lambda_feature: 2
   opt_learning_rate: 0.0002
   opt_beta_1: 0.8
   opt_beta_2: 0.99
@@ -40,7 +42,7 @@ data:
           root: 'data/'
       num_samples: 16
       length: 1600
-  train_batch_size: 16
+  train_batch_size: 1
   train_num_workers: 1
 
   val_dataset:
