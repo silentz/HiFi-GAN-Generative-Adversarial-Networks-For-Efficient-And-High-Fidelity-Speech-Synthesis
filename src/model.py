@@ -199,6 +199,97 @@ class PeriodDiscriminator(nn.Module):
         X = self._postnet(X)
         inter_out.append(X)
 
-        X = torch.flatten(X, 1, -1)
+        X = X.flatten(1, -1)
         return X, inter_out
 
+
+class ScaleDiscriminator(nn.Module):
+
+    def __init__(self, scale: int,
+                       negative_slope: float = 0.1):
+        super().__init__()
+        self._scale = scale
+
+        self._layers = nn.ModuleList([
+                nn.Sequential(
+                        nn.Conv1d(in_channels=1, out_channels=128, kernel_size=15, stride=1, padding=7),
+                        nn.LeakyReLU(negative_slope=negative_slope),
+                    ),
+                nn.Sequential(
+                        nn.Conv1d(in_channels=128, out_channels=128, kernel_size=41, stride=2, padding=20, groups=4),
+                        nn.LeakyReLU(negative_slope=negative_slope),
+                    ),
+                nn.Sequential(
+                        nn.Conv1d(in_channels=128, out_channels=256, kernel_size=41, stride=2, padding=20, groups=16),
+                        nn.LeakyReLU(negative_slope=negative_slope),
+                    ),
+                nn.Sequential(
+                        nn.Conv1d(in_channels=256, out_channels=512, kernel_size=41, stride=4, padding=20, groups=16),
+                        nn.LeakyReLU(negative_slope=negative_slope),
+                    ),
+                nn.Sequential(
+                        nn.Conv1d(in_channels=512, out_channels=1024, kernel_size=41, stride=4, padding=20, groups=16),
+                        nn.LeakyReLU(negative_slope=negative_slope),
+                    ),
+                nn.Sequential(
+                        nn.Conv1d(in_channels=1024, out_channels=1024, kernel_size=41, stride=1, padding=20, groups=16),
+                        nn.LeakyReLU(negative_slope=negative_slope),
+                    ),
+                nn.Sequential(
+                        nn.Conv1d(in_channels=1024, out_channels=1024, kernel_size=5, stride=1, padding=2),
+                        nn.LeakyReLU(negative_slope=negative_slope),
+                    ),
+            ])
+
+        self._postnet = nn.Sequential(
+                nn.Conv1d(in_channels=1024, out_channels=1, kernel_size=3, stride=1, padding=1),
+            )
+
+    def forward(self, input: torch.Tensor) -> Tuple[torch.Tensor, List[torch.Tensor]]:
+        X = input
+        inter_out = []
+
+        for _ in range(self._scale):
+            X = F.avg_pool1d(X, kernel_size=4, stride=2, padding=2)
+
+        for layer in self._layers:
+            X = layer(X)
+            inter_out.append(X)
+
+        X = self._postnet(X)
+        inter_out.append(X)
+
+        X = X.flatten(1, -1)
+        return X, inter_out
+
+
+class Discriminator(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+
+        self._sub_discriminators = nn.ModuleList([
+                PeriodDiscriminator(2),
+                PeriodDiscriminator(3),
+                PeriodDiscriminator(5),
+                PeriodDiscriminator(7),
+                PeriodDiscriminator(11),
+                ScaleDiscriminator(0),
+                ScaleDiscriminator(1),
+                ScaleDiscriminator(2),
+            ])
+
+    def forward(self, input: torch.Tensor) -> \
+            Tuple[
+                List[torch.Tensor],
+                List[List[torch.Tensor]],
+            ]:
+        all_outputs = []
+        all_feature_maps = []
+
+        for sub_disc in self._sub_discriminators:
+            output, feature_maps = sub_disc(input)
+            all_outputs.append(output)
+            all_feature_maps.append(feature_maps)
+
+        return all_outputs, all_feature_maps
