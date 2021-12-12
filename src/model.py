@@ -128,12 +128,77 @@ class Generator(nn.Module):
                     ),
             )
 
-
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         X = self._prenet(input)
         for layer in self._layers:
             X = layer(X)
         X = self._postnet(X)
         X = torch.tanh(X)
-        X = torch.squeeze(X, dim=1)
         return X
+
+
+class PeriodDiscriminator(nn.Module):
+
+    def __init__(self, period: int,
+                       kernel_size: int = 5,
+                       stride: int = 3,
+                       negative_slope: float = 0.1):
+        super().__init__()
+        self._period = period
+
+        self._layers = nn.ModuleList([
+                nn.Sequential(
+                        nn.Conv2d(in_channels=1, out_channels=32,
+                                  kernel_size=(kernel_size, 1), stride=(stride, 1), padding=2),
+                        nn.LeakyReLU(negative_slope=negative_slope),
+                    ),
+                nn.Sequential(
+                        nn.Conv2d(in_channels=32, out_channels=128,
+                                  kernel_size=(kernel_size, 1), stride=(stride, 1), padding=2),
+                        nn.LeakyReLU(negative_slope=negative_slope),
+                    ),
+                nn.Sequential(
+                        nn.Conv2d(in_channels=128, out_channels=512,
+                                  kernel_size=(kernel_size, 1), stride=(stride, 1), padding=2),
+                        nn.LeakyReLU(negative_slope=negative_slope),
+                    ),
+                nn.Sequential(
+                        nn.Conv2d(in_channels=512, out_channels=1024,
+                                  kernel_size=(kernel_size, 1), stride=(stride, 1), padding=2),
+                        nn.LeakyReLU(negative_slope=negative_slope),
+                    ),
+                nn.Sequential(
+                        nn.Conv2d(in_channels=1024, out_channels=1024,
+                                  kernel_size=(kernel_size, 1), stride=(stride, 1), padding=2),
+                        nn.LeakyReLU(negative_slope=negative_slope),
+                    ),
+            ])
+
+        self._postnet = nn.Sequential(
+                nn.Conv2d(in_channels=1024, out_channels=1,
+                          kernel_size=(3, 1), stride=1, padding=1),
+            )
+
+    def forward(self, input: torch.Tensor) -> Tuple[torch.Tensor, List[torch.Tensor]]:
+        # pad input
+        batch_size, channels, length = input.shape
+        n_padded = (self._period - (length % self._period)) % self._period
+        X = F.pad(input, (0, n_padded), mode='reflect')
+        length = length + n_padded
+
+        # reshape
+        X = X.view(batch_size, channels, length // self._period, self._period)
+
+        # forward
+        inter_out = []
+
+        for layer in self._layers:
+            X = layer(X)
+            inter_out.append(X)
+
+        X = self._postnet(X)
+        inter_out.append(X)
+
+        X = torch.flatten(X, 1, -1)
+        return X, inter_out
+
