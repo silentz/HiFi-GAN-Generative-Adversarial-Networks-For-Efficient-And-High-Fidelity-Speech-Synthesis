@@ -80,7 +80,7 @@ class Module(pl.LightningModule):
 
     def _get_mel_spectrogram(self, wav: torch.Tensor) -> torch.Tensor:
         X = self.featurizer(wav)
-        X = X.clamp(min=1e-6).log()
+        #  X = X.clamp(min=1e-6).log()
         return X
 
     def training_step(self, batch: Batch, batch_idx: int) -> Dict[str, Any]:
@@ -93,7 +93,7 @@ class Module(pl.LightningModule):
 
         recon_mel_loss = F.l1_loss(fake_mels, real_mels)
         recon_wav_loss = F.l1_loss(fake_wavs, real_wavs)
-        gen_loss = recon_mel_loss + recon_wav_loss
+        gen_loss = self._lambda_recon * recon_wav_loss
 
         self.log('gen_recon_mel_loss', recon_mel_loss.item())
         self.log('gen_recon_wav_loss', recon_wav_loss.item())
@@ -177,6 +177,7 @@ class Module(pl.LightningModule):
         fakes = itertools.chain(*[x['fake'] for x in outputs])
 
         table_lines = []
+        table_name = f'examples_{self.current_epoch}'
 
         for real, fake in zip(reals, fakes):
             line = [
@@ -186,7 +187,7 @@ class Module(pl.LightningModule):
             table_lines.append(line)
 
         self.logger.experiment.log({
-                'examples': wandb.Table(
+                table_name: wandb.Table(
                         columns=['real', 'fake'],
                         data=table_lines,
                     )

@@ -6,8 +6,8 @@ trainer:
   fast_dev_run: false
   # track_grad_norm: 1
   # gradient_clip_val: 1
-  accumulate_grad_batches: 2
-  max_epochs: 10
+  accumulate_grad_batches: 1
+  max_epochs: 50
   precision: 16
   num_sanity_val_steps: 2
   deterministic: false
@@ -42,7 +42,7 @@ data:
           root: 'data/'
       num_samples: 16
       length: 1600
-  train_batch_size: 8
+  train_batch_size: 16
   train_num_workers: 1
 
   val_dataset:
