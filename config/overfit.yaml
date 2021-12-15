@@ -6,23 +6,23 @@ trainer:
   fast_dev_run: false
   # track_grad_norm: 1
   # gradient_clip_val: 1
-  # accumulate_grad_batches: 2
+  accumulate_grad_batches: 2
   max_epochs: 10
-  precision: 32
+  precision: 16
   num_sanity_val_steps: 2
   deterministic: false
   auto_lr_find: false
-  # callbacks:
-  #   - class_path: pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint
-  #     init_args:
-  #       dirpath: checkpoints/
-  #       filename: "{epoch:03d}-{total_loss:.5f}"
-  #       monitor: "total_loss"
-  #       mode: "min"
-  #       save_top_k: -1
-  #   - class_path: pytorch_lightning.callbacks.LearningRateMonitor
-  #     init_args:
-  #       logging_interval: epoch
+  callbacks:
+    - class_path: pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint
+      init_args:
+        dirpath: checkpoints/
+        filename: "{epoch:03d}-{gen_all_loss:.5f}"
+        monitor: "gen_all_loss"
+        mode: "min"
+        save_top_k: -1
+    - class_path: pytorch_lightning.callbacks.LearningRateMonitor
+      init_args:
+        logging_interval: epoch
 
 model:
   lambda_recon: 45
@@ -42,7 +42,7 @@ data:
           root: 'data/'
       num_samples: 16
       length: 1600
-  train_batch_size: 1
+  train_batch_size: 8
   train_num_workers: 1
 
   val_dataset:
@@ -54,5 +54,5 @@ data:
           root: 'data/'
       num_samples: 16
       length: 16
-  val_batch_size: 16
+  val_batch_size: 2
   val_num_workers: 1
