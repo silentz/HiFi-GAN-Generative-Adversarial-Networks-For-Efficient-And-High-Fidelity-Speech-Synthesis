@@ -78,13 +78,18 @@ class Module(pl.LightningModule):
         #  return [dis_optim, gen_optim], [dis_sched, gen_sched]
         return [gen_optim], [gen_sched]
 
+    def _get_mel_spectrogram(self, wav: torch.Tensor) -> torch.Tensor:
+        X = self.featurizer(wav)
+        X = X.clamp(min=1e-6).log()
+        return X
+
     def training_step(self, batch: Batch, batch_idx: int) -> Dict[str, Any]:
         real_wavs = batch.waveform
-        real_mels = self.featurizer(real_wavs)
+        real_mels = self._get_mel_spectrogram(real_wavs)
         real_wavs = torch.unsqueeze(real_wavs, dim=1)
 
         fake_wavs = self.generator(real_mels)[:, :, :-99]
-        fake_mels = self.featurizer(fake_wavs.squeeze(dim=1))
+        fake_mels = self._get_mel_spectrogram(fake_wavs.squeeze(dim=1))
 
         recon_mel_loss = F.l1_loss(fake_mels, real_mels)
         recon_wav_loss = F.l1_loss(fake_wavs, real_wavs)
@@ -103,11 +108,11 @@ class Module(pl.LightningModule):
 
     #  def training_step(self, batch: Batch, batch_idx: int, optimizer_idx: int) -> Dict[str, Any]:
     #      real_wavs = batch.waveform
-    #      real_mels = self.featurizer(real_wavs)
+    #      real_mels = self._get_mel_spectrogram(real_wavs)
     #      real_wavs = torch.unsqueeze(real_wavs, dim=1)
 
     #      fake_wavs = self.generator(real_mels)[:, :, :-99]
-    #      fake_mels = self.featurizer(fake_wavs.squeeze(dim=1))
+    #      fake_mels = self._get_mel_spectrogram(fake_wavs.squeeze(dim=1))
 
     #      if optimizer_idx == 0: # discriminator
     #          real_disc_out, _ = self.discriminator(real_wavs.detach())
@@ -158,7 +163,7 @@ class Module(pl.LightningModule):
 
     def validation_step(self, batch: Batch, batch_idx: int) -> Dict[str, Any]:
         real_wavs = batch.waveform
-        real_mels = self.featurizer(real_wavs)
+        real_mels = self._get_mel_spectrogram(real_wavs)
         fake_wavs = self.generator(real_mels)[:, :, :-99]
         fake_wavs = fake_wavs.squeeze(dim=1)
 
