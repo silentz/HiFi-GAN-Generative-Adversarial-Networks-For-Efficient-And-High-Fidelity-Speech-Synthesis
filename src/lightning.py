@@ -85,10 +85,13 @@ class Module(pl.LightningModule):
 
         fake_wavs = self.generator(real_mels)[:, :, :-99]
         fake_mels = self.featurizer(fake_wavs.squeeze(dim=1))
-        recon_loss = F.l1_loss(fake_mels, real_mels)
-        gen_loss = self._lambda_recon * recon_loss
 
-        self.log('gen_recon_loss', recon_loss.item())
+        recon_mel_loss = F.l1_loss(fake_mels, real_mels)
+        recon_wav_loss = F.l1_loss(fake_wavs, real_wavs)
+        gen_loss = recon_mel_loss + recon_wav_loss
+
+        self.log('gen_recon_mel_loss', recon_mel_loss.item())
+        self.log('gen_recon_wav_loss', recon_wav_loss.item())
         self.log('gen_all_loss', gen_loss.item())
 
         return {
