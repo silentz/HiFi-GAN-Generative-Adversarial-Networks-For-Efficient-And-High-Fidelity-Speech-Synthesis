@@ -93,7 +93,7 @@ class Module(pl.LightningModule):
 
         recon_mel_loss = F.l1_loss(fake_mels, real_mels)
         recon_wav_loss = F.l1_loss(fake_wavs, real_wavs)
-        gen_loss = self._lambda_recon * recon_wav_loss
+        gen_loss = self._lambda_recon * recon_wav_loss + recon_mel_loss
 
         self.log('gen_recon_mel_loss', recon_mel_loss.item())
         self.log('gen_recon_wav_loss', recon_wav_loss.item())
