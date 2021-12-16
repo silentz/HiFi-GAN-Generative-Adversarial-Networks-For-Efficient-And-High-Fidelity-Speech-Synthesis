@@ -107,7 +107,8 @@ class Module(pl.LightningModule):
         real_mels = self._get_mel_spectrogram(real_wavs)
         real_wavs = torch.unsqueeze(real_wavs, dim=1)
 
-        fake_wavs = self.generator(real_mels)[:, :, :-99]
+        fake_wavs = self.generator(real_mels)
+        fake_wavs = fake_wavs[:, :, :real_wavs.shape[2]]
         fake_mels = self._get_mel_spectrogram(fake_wavs.squeeze(dim=1))
 
         if optimizer_idx == 0: # discriminator

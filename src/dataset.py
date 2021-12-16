@@ -45,7 +45,7 @@ class CutLJSpeechDataset(LJSpeechDataset):
         result_length = min(origin_length, result_length)
         max_idx = origin_length - result_length
 
-        start_idx = random.randrange(0, max_idx)
+        start_idx = random.randint(0, max_idx)
         finish_idx = start_idx + result_length
 
         res_wave = waveform[:, start_idx:finish_idx]
