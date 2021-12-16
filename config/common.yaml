@@ -2,12 +2,10 @@ seed_everything: 3407
 
 trainer:
   gpus: 1
-  check_val_every_n_epoch: 1
-  fast_dev_run: false
-  # track_grad_norm: 1
+  val_check_interval: 200
+  max_steps: 100000
   # gradient_clip_val: 1
   accumulate_grad_batches: 2
-  max_epochs: 60
   precision: 16
   num_sanity_val_steps: 2
   deterministic: false
