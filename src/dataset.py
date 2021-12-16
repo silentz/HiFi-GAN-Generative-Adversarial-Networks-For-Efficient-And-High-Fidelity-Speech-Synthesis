@@ -1,3 +1,4 @@
+import random
 import torch
 import torchaudio
 from torch.utils.data import Dataset
@@ -27,6 +28,30 @@ class LJSpeechDataset(torchaudio.datasets.LJSPEECH):
             ])
             result.append(text)
         return result
+
+
+class CutLJSpeechDataset(LJSpeechDataset):
+
+    def __init__(self, max_length: float, sample_rate: int, **kwargs):
+        super().__init__(**kwargs)
+        self.max_length = max_length
+        self.sample_rate = sample_rate
+
+    def __getitem__(self, idx: int):
+        waveform, wave_len, transcript, tokens, tokens_len = super().__getitem__(idx)
+
+        origin_length = wave_len[0].item()
+        result_length = int(self.sample_rate * self.max_length)
+        result_length = min(origin_length, result_length)
+        max_idx = origin_length - result_length
+
+        start_idx = random.randrange(0, max_idx)
+        finish_idx = start_idx + result_length
+
+        res_wave = waveform[:, start_idx:finish_idx]
+        res_len = torch.tensor([result_length], device='cpu', dtype=torch.long)
+
+        return res_wave, res_len, transcript, tokens, tokens_len
 
 
 class OverfitDataset(Dataset):
