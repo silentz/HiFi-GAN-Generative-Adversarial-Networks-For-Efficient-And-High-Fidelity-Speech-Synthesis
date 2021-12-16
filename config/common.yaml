@@ -6,7 +6,7 @@ trainer:
   fast_dev_run: false
   # track_grad_norm: 1
   # gradient_clip_val: 1
-  accumulate_grad_batches: 1
+  accumulate_grad_batches: 2
   max_epochs: 60
   precision: 16
   num_sanity_val_steps: 2
@@ -34,15 +34,12 @@ model:
 
 data:
   train_dataset:
-    class_path: src.dataset.OverfitDataset
+    class_path: src.dataset.CutLJSpeechDataset
     init_args:
-      dataset:
-        class_path: src.dataset.LJSpeechDataset
-        init_args:
-          root: 'data/'
-      num_samples: 16
-      length: 1600
-  train_batch_size: 16
+      root: 'data/'
+      max_length: 2.
+      sample_rate: 22050
+  train_batch_size: 8
   train_num_workers: 1
 
   val_dataset:
@@ -52,7 +49,7 @@ data:
         class_path: src.dataset.LJSpeechDataset
         init_args:
           root: 'data/'
-      num_samples: 16
-      length: 16
-  val_batch_size: 2
+      num_samples: 4
+      length: 4
+  val_batch_size: 4
   val_num_workers: 1
