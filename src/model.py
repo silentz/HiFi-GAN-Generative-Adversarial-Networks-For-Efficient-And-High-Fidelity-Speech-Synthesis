@@ -270,12 +270,12 @@ class Discriminator(nn.Module):
 
         self._sub_discriminators = nn.ModuleList([
                 PeriodDiscriminator(2),
-                PeriodDiscriminator(3),
+                #  PeriodDiscriminator(3),
                 PeriodDiscriminator(5),
-                PeriodDiscriminator(7),
+                #  PeriodDiscriminator(7),
                 PeriodDiscriminator(11),
-                ScaleDiscriminator(0),
-                ScaleDiscriminator(1),
+                #  ScaleDiscriminator(0),
+                #  ScaleDiscriminator(1),
                 ScaleDiscriminator(2),
             ])
 

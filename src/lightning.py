@@ -111,7 +111,9 @@ class Module(pl.LightningModule):
             _,             real_disc_maps = self.discriminator(real_wavs)
             fake_disc_out, fake_dics_maps = self.discriminator(fake_wavs)
 
-            recon_loss = F.l1_loss(fake_mels, real_mels)
+            recon_mel_loss = F.l1_loss(fake_mels, real_mels)
+            recon_wav_loss = F.l1_loss(fake_wavs, real_wavs)
+
             fake_loss = 0
             feature_loss = 0
 
@@ -122,10 +124,12 @@ class Module(pl.LightningModule):
                 for real_map, fake_map in zip(real_maps, fake_maps):
                     feature_loss += torch.mean(torch.abs(real_map - fake_map))
 
-            gen_loss = fake_loss + self._lambda_recon * recon_loss \
+            gen_loss = fake_loss + self._lambda_recon * recon_mel_loss \
+                                 + self._lambda_recon * recon_wav_loss \
                                  + self._lambda_feature * feature_loss
 
-            self.log('gen_recon_loss', recon_loss.item())
+            self.log('gen_recon_mel_loss', recon_mel_loss.item())
+            self.log('gen_recon_wav_loss', recon_wav_loss.item())
             self.log('gen_fake_loss', fake_loss.item())
             self.log('gen_feature_loss', feature_loss.item())
             self.log('gen_all_loss', gen_loss.item())
