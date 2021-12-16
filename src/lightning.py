@@ -82,26 +82,6 @@ class Module(pl.LightningModule):
         #  X = X.clamp(min=1e-6).log()
         return X
 
-    #  def training_step(self, batch: Batch, batch_idx: int) -> Dict[str, Any]:
-    #      real_wavs = batch.waveform
-    #      real_mels = self._get_mel_spectrogram(real_wavs)
-    #      real_wavs = torch.unsqueeze(real_wavs, dim=1)
-
-    #      fake_wavs = self.generator(real_mels)[:, :, :-99]
-    #      fake_mels = self._get_mel_spectrogram(fake_wavs.squeeze(dim=1))
-
-    #      recon_mel_loss = F.l1_loss(fake_mels, real_mels)
-    #      recon_wav_loss = F.l1_loss(fake_wavs, real_wavs)
-    #      gen_loss = self._lambda_recon * recon_wav_loss + recon_mel_loss
-
-    #      self.log('gen_recon_mel_loss', recon_mel_loss.item())
-    #      self.log('gen_recon_wav_loss', recon_wav_loss.item())
-    #      self.log('gen_all_loss', gen_loss.item())
-
-    #      return {
-    #              'loss': gen_loss,
-    #          }
-
     def training_step(self, batch: Batch, batch_idx: int, optimizer_idx: int) -> Dict[str, Any]:
         real_wavs = batch.waveform
         real_mels = self._get_mel_spectrogram(real_wavs)
