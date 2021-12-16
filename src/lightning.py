@@ -75,38 +75,14 @@ class Module(pl.LightningModule):
         gen_optim = torch.optim.Adam(self.generator.parameters(), **self._opt_parameters)
         gen_sched = torch.optim.lr_scheduler.ExponentialLR(gen_optim, **self._lr_sched_parameters)
 
-        #  return [dis_optim, gen_optim], [dis_sched, gen_sched]
-        return [gen_optim], [gen_sched]
+        return [dis_optim, gen_optim], [dis_sched, gen_sched]
 
     def _get_mel_spectrogram(self, wav: torch.Tensor) -> torch.Tensor:
         X = self.featurizer(wav)
         #  X = X.clamp(min=1e-6).log()
         return X
 
-    def training_step(self, batch: Batch, batch_idx: int) -> Dict[str, Any]:
-        real_wavs = batch.waveform
-        real_mels = self._get_mel_spectrogram(real_wavs)
-        real_wavs = torch.unsqueeze(real_wavs, dim=1)
-
-        fake_wavs = self.generator(real_mels)[:, :, :-99]
-        fake_mels = self._get_mel_spectrogram(fake_wavs.squeeze(dim=1))
-
-        recon_mel_loss = F.l1_loss(fake_mels, real_mels)
-        recon_wav_loss = F.l1_loss(fake_wavs, real_wavs)
-        gen_loss = self._lambda_recon * recon_wav_loss + recon_mel_loss
-
-        self.log('gen_recon_mel_loss', recon_mel_loss.item())
-        self.log('gen_recon_wav_loss', recon_wav_loss.item())
-        self.log('gen_all_loss', gen_loss.item())
-
-        return {
-                'loss': gen_loss,
-            }
-
-    # NOTE: aversarial loss is not required
-    #       to overfit model for checkpoint
-
-    #  def training_step(self, batch: Batch, batch_idx: int, optimizer_idx: int) -> Dict[str, Any]:
+    #  def training_step(self, batch: Batch, batch_idx: int) -> Dict[str, Any]:
     #      real_wavs = batch.waveform
     #      real_mels = self._get_mel_spectrogram(real_wavs)
     #      real_wavs = torch.unsqueeze(real_wavs, dim=1)
@@ -114,51 +90,71 @@ class Module(pl.LightningModule):
     #      fake_wavs = self.generator(real_mels)[:, :, :-99]
     #      fake_mels = self._get_mel_spectrogram(fake_wavs.squeeze(dim=1))
 
-    #      if optimizer_idx == 0: # discriminator
-    #          real_disc_out, _ = self.discriminator(real_wavs.detach())
-    #          fake_disc_out, _ = self.discriminator(fake_wavs.detach())
+    #      recon_mel_loss = F.l1_loss(fake_mels, real_mels)
+    #      recon_wav_loss = F.l1_loss(fake_wavs, real_wavs)
+    #      gen_loss = self._lambda_recon * recon_wav_loss + recon_mel_loss
 
-    #          real_loss = sum(torch.mean((x - 1) ** 2) for x in real_disc_out)
-    #          fake_loss = sum(torch.mean(x ** 2) for x in fake_disc_out)
-    #          disc_loss = real_loss + fake_loss
+    #      self.log('gen_recon_mel_loss', recon_mel_loss.item())
+    #      self.log('gen_recon_wav_loss', recon_wav_loss.item())
+    #      self.log('gen_all_loss', gen_loss.item())
 
-    #          self.log('disc_real_loss', real_loss.item())
-    #          self.log('disc_fake_loss', fake_loss.item())
-    #          self.log('disc_all_loss', disc_loss.item())
+    #      return {
+    #              'loss': gen_loss,
+    #          }
 
-    #          return {
-    #                  'loss': disc_loss,
-    #              }
+    def training_step(self, batch: Batch, batch_idx: int, optimizer_idx: int) -> Dict[str, Any]:
+        real_wavs = batch.waveform
+        real_mels = self._get_mel_spectrogram(real_wavs)
+        real_wavs = torch.unsqueeze(real_wavs, dim=1)
 
-    #      elif optimizer_idx == 1: # generator
-    #          _,             real_disc_maps = self.discriminator(real_wavs)
-    #          fake_disc_out, fake_dics_maps = self.discriminator(fake_wavs)
+        fake_wavs = self.generator(real_mels)[:, :, :-99]
+        fake_mels = self._get_mel_spectrogram(fake_wavs.squeeze(dim=1))
 
-    #          recon_loss = F.l1_loss(fake_mels, real_mels)
-    #          fake_loss = 0
-    #          feature_loss = 0
+        if optimizer_idx == 0: # discriminator
+            real_disc_out, _ = self.discriminator(real_wavs.detach())
+            fake_disc_out, _ = self.discriminator(fake_wavs.detach())
 
-    #          for disc_out in fake_disc_out:
-    #              fake_loss += torch.mean((disc_out - 1) ** 2)
+            real_loss = sum(torch.mean((x - 1) ** 2) for x in real_disc_out)
+            fake_loss = sum(torch.mean(x ** 2) for x in fake_disc_out)
+            disc_loss = real_loss + fake_loss
 
-    #          for real_maps, fake_maps in zip(real_disc_maps, fake_dics_maps):
-    #              for real_map, fake_map in zip(real_maps, fake_maps):
-    #                  feature_loss += torch.mean(torch.abs(real_map - fake_map))
+            self.log('disc_real_loss', real_loss.item())
+            self.log('disc_fake_loss', fake_loss.item())
+            self.log('disc_all_loss', disc_loss.item())
 
-    #          gen_loss = fake_loss + self._lambda_recon * recon_loss \
-    #                               + self._lambda_feature * feature_loss
+            return {
+                    'loss': disc_loss,
+                }
 
-    #          self.log('gen_recon_loss', recon_loss.item())
-    #          self.log('gen_fake_loss', fake_loss.item())
-    #          self.log('gen_feature_loss', feature_loss.item())
-    #          self.log('gen_all_loss', gen_loss.item())
+        elif optimizer_idx == 1: # generator
+            _,             real_disc_maps = self.discriminator(real_wavs)
+            fake_disc_out, fake_dics_maps = self.discriminator(fake_wavs)
 
-    #          return {
-    #                  'loss': gen_loss,
-    #              }
+            recon_loss = F.l1_loss(fake_mels, real_mels)
+            fake_loss = 0
+            feature_loss = 0
 
-    #      else: # undefined
-    #          raise ValueError('undefined optimizer')
+            for disc_out in fake_disc_out:
+                fake_loss += torch.mean((disc_out - 1) ** 2)
+
+            for real_maps, fake_maps in zip(real_disc_maps, fake_dics_maps):
+                for real_map, fake_map in zip(real_maps, fake_maps):
+                    feature_loss += torch.mean(torch.abs(real_map - fake_map))
+
+            gen_loss = fake_loss + self._lambda_recon * recon_loss \
+                                 + self._lambda_feature * feature_loss
+
+            self.log('gen_recon_loss', recon_loss.item())
+            self.log('gen_fake_loss', fake_loss.item())
+            self.log('gen_feature_loss', feature_loss.item())
+            self.log('gen_all_loss', gen_loss.item())
+
+            return {
+                    'loss': gen_loss,
+                }
+
+        else: # undefined
+            raise ValueError('undefined optimizer')
 
 
     def validation_step(self, batch: Batch, batch_idx: int) -> Dict[str, Any]:
