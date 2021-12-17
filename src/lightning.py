@@ -56,8 +56,8 @@ class Module(pl.LightningModule):
         super().__init__()
 
         losses = {
-                'mse': torch.square,
-                'mae': torch.abs,
+                'mse': F.mse_loss,
+                'mae': F.l1_loss,
             }
 
         self._lambda_recon_wav = lambda_recon_wav
@@ -132,7 +132,7 @@ class Module(pl.LightningModule):
 
             for real_maps, fake_maps in zip(real_disc_maps, fake_dics_maps):
                 for real_map, fake_map in zip(real_maps, fake_maps):
-                    feature_loss += torch.mean(self._loss_func(real_map - fake_map))
+                    feature_loss += self._loss_func(fake_map, real_map)
 
             gen_loss = fake_loss + self._lambda_recon_mel * recon_mel_loss \
                                  + self._lambda_recon_wav * recon_wav_loss \
