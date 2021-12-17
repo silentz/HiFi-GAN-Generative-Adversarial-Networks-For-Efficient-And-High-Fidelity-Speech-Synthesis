@@ -1,0 +1,55 @@
+seed_everything: 3407
+
+trainer:
+  gpus: 1
+  val_check_interval: 200
+  max_steps: 100000
+  # gradient_clip_val: 1
+  accumulate_grad_batches: 2
+  precision: 16
+  num_sanity_val_steps: 2
+  deterministic: false
+  auto_lr_find: false
+  callbacks:
+    - class_path: pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint
+      init_args:
+        dirpath: checkpoints/
+        filename: "{epoch:03d}-{gen_all_loss:.5f}"
+        monitor: "gen_all_loss"
+        mode: "min"
+        save_top_k: -1
+    - class_path: pytorch_lightning.callbacks.LearningRateMonitor
+      init_args:
+        logging_interval: epoch
+
+model:
+  lambda_recon_wav: 10
+  lambda_recon_mel: 10
+  lambda_feature: 45
+  loss_func: mse
+  opt_learning_rate: 0.0002
+  opt_beta_1: 0.8
+  opt_beta_2: 0.99
+  lr_sched_gamma: 0.999
+
+data:
+  train_dataset:
+    class_path: src.dataset.CutLJSpeechDataset
+    init_args:
+      root: 'data/'
+      max_length: 2.
+      sample_rate: 22050
+  train_batch_size: 8
+  train_num_workers: 1
+
+  val_dataset:
+    class_path: src.dataset.OverfitDataset
+    init_args:
+      dataset:
+        class_path: src.dataset.LJSpeechDataset
+        init_args:
+          root: 'data/'
+      num_samples: 4
+      length: 4
+  val_batch_size: 4
+  val_num_workers: 1

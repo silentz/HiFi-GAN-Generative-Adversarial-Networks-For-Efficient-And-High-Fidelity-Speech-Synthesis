@@ -23,8 +23,10 @@ trainer:
         logging_interval: epoch
 
 model:
-  lambda_recon: 45
+  lambda_recon_wav: 50
+  lambda_recon_mel: 1
   lambda_feature: 2
+  loss_func: mae
   opt_learning_rate: 0.0002
   opt_beta_1: 0.8
   opt_beta_2: 0.99

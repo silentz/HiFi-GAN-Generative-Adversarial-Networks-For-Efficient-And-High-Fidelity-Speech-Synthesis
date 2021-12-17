@@ -45,15 +45,25 @@ class DataModule(pl.LightningDataModule):
 
 class Module(pl.LightningModule):
 
-    def __init__(self, lambda_recon: float,
+    def __init__(self, lambda_recon_wav: float,
+                       lambda_recon_mel: float,
                        lambda_feature: float,
+                       loss_func: str,
                        opt_learning_rate: float,
                        opt_beta_1: float,
                        opt_beta_2: float,
                        lr_sched_gamma: float):
         super().__init__()
-        self._lambda_recon = lambda_recon
+
+        losses = {
+                'mse': torch.square,
+                'mae': torch.abs,
+            }
+
+        self._lambda_recon_wav = lambda_recon_wav
+        self._lambda_recon_mel = lambda_recon_mel
         self._lambda_feature = lambda_feature
+        self._loss_func = losses[loss_func]
 
         self._opt_parameters = {
                 'lr': opt_learning_rate,
@@ -111,8 +121,8 @@ class Module(pl.LightningModule):
             _,             real_disc_maps = self.discriminator(real_wavs)
             fake_disc_out, fake_dics_maps = self.discriminator(fake_wavs)
 
-            recon_mel_loss = F.l1_loss(fake_mels, real_mels)
-            recon_wav_loss = F.l1_loss(fake_wavs, real_wavs)
+            recon_mel_loss = self._loss_func(fake_mels, real_mels)
+            recon_wav_loss = self._loss_func(fake_wavs, real_wavs)
 
             fake_loss = 0
             feature_loss = 0
@@ -122,10 +132,10 @@ class Module(pl.LightningModule):
 
             for real_maps, fake_maps in zip(real_disc_maps, fake_dics_maps):
                 for real_map, fake_map in zip(real_maps, fake_maps):
-                    feature_loss += torch.mean(torch.abs(real_map - fake_map))
+                    feature_loss += torch.mean(self._loss_func(real_map - fake_map))
 
-            gen_loss = fake_loss + self._lambda_recon * recon_mel_loss \
-                                 + self._lambda_recon * recon_wav_loss \
+            gen_loss = fake_loss + self._lambda_recon_mel * recon_mel_loss \
+                                 + self._lambda_recon_wav * recon_wav_loss \
                                  + self._lambda_feature * feature_loss
 
             self.log('gen_recon_mel_loss', recon_mel_loss.item())
