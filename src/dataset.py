@@ -3,6 +3,9 @@ import torch
 import torchaudio
 from torch.utils.data import Dataset
 
+import os
+from typing import List
+
 
 # from: https://github.com/markovka17/dla/blob/2021/hw3_tts/aligner.ipynb
 class LJSpeechDataset(torchaudio.datasets.LJSPEECH):
@@ -52,6 +55,22 @@ class CutLJSpeechDataset(LJSpeechDataset):
         res_len = torch.tensor([result_length], device='cpu', dtype=torch.long)
 
         return res_wave, res_len, transcript, tokens, tokens_len
+
+
+class TestDataset(Dataset):
+
+    def __init__(self, root: str, files: List[str]):
+        self.root = root
+        self.files = files
+
+    def __len__(self):
+        return len(self.files)
+
+    def __getitem__(self, idx: int):
+        path = os.path.join(self.root, self.files[idx])
+        wav, _ = torchaudio.load(path)
+        wav_len = torch.tensor([len(wav[0])])
+        return wav, wav_len, '', torch.tensor([[]]), torch.tensor([])
 
 
 class OverfitDataset(Dataset):

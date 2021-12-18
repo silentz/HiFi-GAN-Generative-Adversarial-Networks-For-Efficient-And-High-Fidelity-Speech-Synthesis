@@ -43,13 +43,12 @@ data:
   train_num_workers: 1
 
   val_dataset:
-    class_path: src.dataset.OverfitDataset
+    class_path: src.dataset.TestDataset
     init_args:
-      dataset:
-        class_path: src.dataset.LJSpeechDataset
-        init_args:
-          root: 'data/'
-      num_samples: 4
-      length: 4
-  val_batch_size: 4
+      root: test_samples/
+      files:
+        - audio_1.wav
+        - audio_2.wav
+        - audio_3.wav
+  val_batch_size: 3
   val_num_workers: 1
