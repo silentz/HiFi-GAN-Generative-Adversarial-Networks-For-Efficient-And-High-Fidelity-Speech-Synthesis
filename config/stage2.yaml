@@ -3,7 +3,7 @@ seed_everything: 3407
 trainer:
   gpus: 1
   val_check_interval: 200
-  max_steps: 160000
+  max_steps: 133000
   # gradient_clip_val: 1
   accumulate_grad_batches: 2
   precision: 16
